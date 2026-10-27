@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PureCut AI — 100% Private In-Browser Background Remover</title>
+  <meta name="description" content="Remove backgrounds from images 100% locally in your browser with AI. No servers, no signups, no uploads. Complete privacy and zero cost.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✂️</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <!-- JSZip for batch downloads -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+</head>
+<body>
+  <!-- Header / Nav -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo">
+        <span class="logo-icon" aria-hidden="true">✂️</span>
+        <span class="logo-text">PureCut<strong>AI</strong></span>
+        <span class="badge badge-privacy">
+          <svg class="icon-shield" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          100% Local &amp; Private
+        </span>
+      </div>
+
+      <div class="header-actions">
+        <!-- Theme toggle -->
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle dark/light theme" title="Toggle dark/light theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="main-container">
+    <!-- Hero Section -->
+    <section class="hero-section" id="heroSection">
+      <h1 class="hero-title">Remove Backgrounds Instantly <br><span class="gradient-text">Without Uploading Anywhere</span></h1>
+      <p class="hero-subtitle">
+        Powered by on-device WebAssembly AI. Your photos stay strictly on your machine — zero servers, zero tracking, total privacy.
+      </p>
+    </section>
+
+    <!-- Upload Zone Section -->
+    <section class="upload-section" id="uploadSection">
+      <div class="dropzone" id="dropzone" tabindex="0" role="region" aria-label="Image drop zone">
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple class="visually-hidden">
+        
+        <div class="dropzone-content">
+          <div class="dropzone-icon-wrapper">
+            <svg class="dropzone-icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          
+          <h2 class="dropzone-title">Drag &amp; drop your image here</h2>
+          <p class="dropzone-hint">or <button type="button" class="btn-browse" id="browseBtn">Choose File</button></p>
+          
+          <div class="dropzone-tags">
+            <span class="tag">JPG</span>
+            <span class="tag">PNG</span>
+            <span class="tag">WEBP</span>
+            <span class="tag">Max 10 MB</span>
+            <span class="tag tag-highlight">Ctrl+V to Paste Image or URL</span>
+          </div>
+
+          <!-- Quality Selector -->
+          <div class="quality-selector-bar">
+            <span class="quality-label">AI Precision:</span>
+            <div class="quality-options" role="radiogroup" aria-label="AI Precision Model">
+              <label class="quality-radio active" title="16-bit Floating Point: Cleanest edges, fine hair & boundaries (~88MB)">
+                <input type="radio" name="aiModelChoice" value="medium" checked>
+                <span>🌟 High Quality (FP16)</span>
+              </label>
+              <label class="quality-radio" title="32-bit Full Precision: Studio-grade neural segmentation (~176MB)">
+                <input type="radio" name="aiModelChoice" value="large">
+                <span>💎 Ultra (FP32)</span>
+              </label>
+              <label class="quality-radio" title="8-bit Quantized: Fast download, low bandwidth (~44MB)">
+                <input type="radio" name="aiModelChoice" value="small">
+                <span>⚡ Fast (8-bit)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- URL input toggle -->
+          <div class="url-input-container">
+            <button type="button" class="btn-text-link" id="toggleUrlInputBtn">+ Or load from image URL</button>
+            <div class="url-input-box" id="urlInputBox" hidden>
+              <input type="url" id="imageUrlInput" placeholder="https://example.com/photo.jpg" class="url-input-field" aria-label="Image web URL">
+              <button type="button" class="btn-primary btn-sm" id="loadUrlBtn">Load &amp; Remove</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toast / Error Message Notification -->
+      <div class="toast-error" id="toastError" role="alert" aria-live="assertive" hidden>
+        <span class="toast-icon">⚠️</span>
+        <span class="toast-message" id="toastMessage"></span>
+        <button type="button" class="toast-close" id="toastClose" aria-label="Close notification">&times;</button>
+      </div>
+    </section>
+
+    <!-- Processing / Loading State Section -->
+    <section class="processing-section" id="processingSection" hidden>
+      <div class="processing-card">
+        <div class="spinner-container">
+          <div class="spinner"></div>
+          <span class="spinner-core-icon">✂️</span>
+        </div>
+
+        <h3 class="processing-title" id="processingTitle">Processing Image...</h3>
+        <p class="processing-status" id="processingStatus">Initializing AI engine...</p>
+
+        <!-- Progress bar -->
+        <div class="progress-bar-container" role="progressbar" id="progressBar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+        </div>
+        <div class="progress-percentage" id="progressPercentage">0%</div>
+
+        <div class="model-info-note">
+          <span class="note-icon">💡</span>
+          <span>
+            <strong>First-time note:</strong> The AI model (~44MB) downloads into your browser cache on first use.
+            Subsequent images will process instantly!
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Editor / Result Section -->
+    <section class="editor-section" id="editorSection" hidden>
+      <!-- Top Action Toolbar -->
+      <div class="editor-toolbar-top">
+        <div class="file-meta">
+          <span class="file-name" id="currentFileName">image.png</span>
+          <span class="file-resolution" id="fileResolution">0 &times; 0 px</span>
+          <span class="badge badge-quality" id="currentModelBadge">High Quality (FP16)</span>
+        </div>
+        <div class="top-buttons">
+          <button type="button" class="btn-reprocess" id="reprocessBtn" title="Re-process with selected AI model">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            Re-process AI
+          </button>
+          <button type="button" class="btn-secondary" id="resetBtn" title="Reset and process another image">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+              <path d="M3 21v-5h5"/>
+            </svg>
+            Try Another Image
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Comparison Canvas / Stage -->
+      <div class="stage-container">
+        <!-- Before / After Draggable Split View -->
+        <div class="comparison-stage" id="comparisonStage" tabindex="0" role="slider" aria-label="Before and after split comparison" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">
+          <!-- Background customizer layer (rendered behind the cutout) -->
+          <div class="custom-bg-layer" id="customBgLayer"></div>
+
+          <!-- Cutout layer (Processed Foreground with transparency) -->
+          <div class="stage-layer layer-after" id="layerAfter">
+            <img id="imageAfter" alt="Processed foreground with background removed">
+          </div>
+
+          <!-- Original Image Layer (Clipped by slider position) -->
+          <div class="stage-layer layer-before" id="layerBefore">
+            <img id="imageBefore" alt="Original image before processing">
+            <span class="label-badge label-before">Original</span>
+          </div>
+
+          <!-- Slider Split Line and Handle -->
+          <div class="slider-divider" id="sliderDivider">
+            <div class="slider-handle">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M8.5 7l-5 5 5 5V7zm7 0v10l5-5-5-5z"/>
+              </svg>
+            </div>
+          </div>
+
+          <span class="label-badge label-after">Removed BG</span>
+        </div>
+      </div>
+
+      <!-- Customization Controls Panel -->
+      <div class="editor-controls-panel">
+        <div class="control-group">
+          <label class="control-label">Background Options</label>
+          <div class="bg-options-row">
+            <!-- Transparent mode -->
+            <button type="button" class="bg-chip bg-chip-transparent active" id="bgOptTransparent" title="Transparent background">
+              <span class="checker-icon"></span>
+              <span>Transparent</span>
+            </button>
+
+            <!-- Color presets -->
+            <div class="preset-colors-group">
+              <button type="button" class="color-preset-chip" data-color="#FFFFFF" title="White" style="background-color: #FFFFFF;"></button>
+              <button type="button" class="color-preset-chip" data-color="#F3F4F6" title="Studio Light Gray" style="background-color: #F3F4F6;"></button>
+              <button type="button" class="color-preset-chip" data-color="#18181B" title="Charcoal Black" style="background-color: #18181B;"></button>
+              <button type="button" class="color-preset-chip" data-color="#3B82F6" title="Ocean Blue" style="background-color: #3B82F6;"></button>
+              <button type="button" class="color-preset-chip" data-color="#10B981" title="Emerald Green" style="background-color: #10B981;"></button>
+              <button type="button" class="color-preset-chip" data-color="#00FF00" title="Chroma Key Green" style="background-color: #00FF00;"></button>
+              <button type="button" class="color-preset-chip" data-color="#EC4899" title="Rose Pink" style="background-color: #EC4899;"></button>
+              <button type="button" class="color-preset-chip" data-color="#F59E0B" title="Amber Gold" style="background-color: #F59E0B;"></button>
+            </div>
+
+            <!-- Custom color picker -->
+            <div class="custom-color-picker-wrap" title="Custom color picker">
+              <input type="color" id="customColorPicker" value="#FFFFFF" aria-label="Custom solid background color">
+              <span class="custom-color-label" id="customColorHex">#FFFFFF</span>
+            </div>
+
+            <!-- Custom background image upload -->
+            <div class="custom-bg-img-wrap">
+              <label for="bgImageInput" class="btn-chip-action" title="Upload custom background image">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <span>Custom Image</span>
+              </label>
+              <input type="file" id="bgImageInput" accept="image/*" class="visually-hidden">
+              <button type="button" class="btn-chip-remove" id="removeBgImageBtn" title="Remove custom background image" hidden>&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Edge Refinement & Defringing Suite -->
+        <div class="control-group refinement-group">
+          <div class="refinement-header">
+            <label class="control-label">Edge Refinement &amp; Halo Removal</label>
+            <button type="button" class="btn-text-action" id="resetRefinementBtn">Reset Tuning</button>
+          </div>
+          
+          <div class="refinement-sliders-grid">
+            <!-- Defringe / Choke -->
+            <div class="slider-control-card">
+              <div class="slider-label-row">
+                <span class="slider-title" title="Erodes the border inward to strip off background color halos/fringing">
+                  Defringe / Choke
+                </span>
+                <span class="slider-value" id="defringeVal">0px</span>
+              </div>
+              <input type="range" id="defringeSlider" min="0" max="4" step="1" value="0" class="tuning-slider">
+              <span class="slider-hint">Removes colored background bleed along edges</span>
+            </div>
+
+            <!-- Edge Smooth / Feather -->
+            <div class="slider-control-card">
+              <div class="slider-label-row">
+                <span class="slider-title" title="Softens hard or pixelated cutout borders">
+                  Smooth &amp; Feather
+                </span>
+                <span class="slider-value" id="featherVal">0px</span>
+              </div>
+              <input type="range" id="featherSlider" min="0" max="6" step="1" value="0" class="tuning-slider">
+              <span class="slider-hint">Softens jagged pixel boundaries</span>
+            </div>
+
+            <!-- Background Cleanup / Threshold -->
+            <div class="slider-control-card">
+              <div class="slider-label-row">
+                <span class="slider-title" title="Eliminates faint, translucent background residue">
+                  Background Cleanup
+                </span>
+                <span class="slider-value" id="thresholdVal">0%</span>
+              </div>
+              <input type="range" id="thresholdSlider" min="0" max="40" step="2" value="0" class="tuning-slider">
+              <span class="slider-hint">Wipes ghost background patches</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Download Buttons Panel -->
+        <div class="control-group download-group">
+          <label class="control-label">Export &amp; Download (Original Resolution)</label>
+          <div class="download-buttons-row">
+            <button type="button" class="btn-primary btn-download" id="downloadPngBtn">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>Download PNG (Transparent)</span>
+            </button>
+
+            <button type="button" class="btn-secondary btn-download" id="downloadJpgBtn">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>Download JPG (With BG)</span>
+            </button>
+
+            <button type="button" class="btn-tertiary" id="copyClipboardBtn" title="Copy cutout to clipboard">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Batch Queue Drawer (Appears when multiple images are queued) -->
+    <section class="batch-section" id="batchSection" hidden>
+      <div class="batch-header">
+        <div class="batch-title-group">
+          <h3>Batch Queue (<span id="batchCount">0</span> images)</h3>
+          <span class="batch-hint">Click any image to preview or edit</span>
+        </div>
+        <button type="button" class="btn-primary btn-sm" id="downloadAllZipBtn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="8 17 12 21 16 17"/>
+            <line x1="12" y1="12" x2="12" y2="21"/>
+            <path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/>
+          </svg>
+          Download All (ZIP)
+        </button>
+      </div>
+      <div class="batch-grid" id="batchGrid" role="list">
+        <!-- Rendered batch thumbnails -->
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works-section">
+      <h2 class="section-heading">How PureCut Works</h2>
+      <p class="section-subheading">Three simple steps to high-precision cutouts with zero cloud dependencies.</p>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-icon">📁</div>
+          <h3 class="step-title">Select Your Photo</h3>
+          <p class="step-desc">Drag &amp; drop, pick a file, or paste directly from your clipboard (Ctrl+V). We support JPG, PNG, and WebP.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-icon">⚡</div>
+          <h3 class="step-title">In-Browser AI Processing</h3>
+          <p class="step-desc">The neural network (ISNet ONNX) executes entirely within your browser's WebAssembly sandbox. Your image is never transmitted over the internet.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-icon">✨</div>
+          <h3 class="step-title">Customize &amp; Download</h3>
+          <p class="step-desc">Compare with the interactive slider, select custom background colors or scenes, and export full original resolution PNG or JPG.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Privacy & Offline Guarantee Section -->
+    <section class="privacy-guarantee-section">
+      <div class="privacy-card">
+        <div class="privacy-icon-box">
+          <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div class="privacy-content">
+          <h3>Your Images Never Leave Your Device</h3>
+          <p>
+            Unlike traditional background removal tools that send sensitive photos to remote servers or third-party APIs,
+            PureCut AI runs 100% locally on your machine. You can even disconnect your Wi-Fi after the model loads, and it will keep working flawlessly!
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <p>PureCut AI &bull; In-browser Neural Background Removal &bull; Zero Server Storage</p>
+    </div>
+  </footer>
+
+  <!-- Main Application Script (ES Module) -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
